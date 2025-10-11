@@ -1,0 +1,810 @@
+<?php
+/**
+ * Файловая база данных на JSON
+ * Версия 3.1 - добавлена поддержка импорта wpForo
+ */
+class Database {
+    private $dataDir;
+    private $uploadsDir;
+    private $backupDir;
+
+    public function __construct() {
+        // Устанавливаем UTF-8
+        if (function_exists('mb_internal_encoding')) {
+            mb_internal_encoding('UTF-8');
+        }
+
+        $this->dataDir = dirname(__FILE__) . '/data/';
+        $this->uploadsDir = dirname(__FILE__) . '/uploads/';
+        $this->backupDir = dirname(__FILE__) . '/backups/';
+
+        $this->createDirectories();
+        $this->initFiles();
+    }
+
+    private function createDirectories() {
+        $dirs = array($this->dataDir, $this->uploadsDir, $this->backupDir);
+
+        foreach ($dirs as $dir) {
+            if (!is_dir($dir)) {
+                @mkdir($dir, 0755, true);
+            }
+        }
+    }
+
+    private function initFiles() {
+        $files = array(
+            'settings.json' => array(
+                'site_title' => 'Российский Союз Владельцев Хотошо',
+                'header_image' => '',
+                'welcome_title' => 'Добро пожаловать на наш сайт!',
+                'welcome_text' => 'Мы собираем для Вас воедино всё о породе Хотошо. Здесь Вы найдете самую полную информацию об уникальной и универсальной породе. Общайтесь, задавайте вопросы, делитесь своим опытом. Узнавайте больше о характере и особенностях Хотошо. Присоединяйтесь к нашему сообществу и откройте для себя мир собак породы Хотошо!',
+                'phone' => '+7 (999) 123-45-67',
+                'email' => 'info@hotosho.ru',
+                'address' => 'Москва, Россия',
+                'vk' => 'https://vk.com/hotosho',
+                'instagram' => 'https://instagram.com/hotosho',
+                'facebook' => 'https://facebook.com/hotosho',
+                'footer_about' => 'Российский Союз Владельцев Хотошо - это сообщество любителей уникальной породы собак.',
+                'footer_contacts' => 'Свяжитесь с нами для получения информации о породе Хотошо.'
+            ),
+            'slider.json' => array(
+                'slides' => array()
+            ),
+            'about.json' => array(
+                'title' => 'Хотошо',
+                'content' => "Шли за веками века, юга сменялась новой югой — не остановить ход времён. Неотвратимо вращается колесо жизни, от рождения к рождению. И понимали боги, что все более беззащитен становится человек на Земле.\n\nХотошо — это древняя и уникальная порода собак, которая на протяжении веков была верным спутником человека. Эти удивительные животные обладают не только красотой, но и исключительным умом, преданностью и храбростью.\n\nПорода формировалась в суровых условиях, что сделало её невероятно выносливой и приспособленной к различным климатическим условиям. Хотошо — это не просто собака, это член семьи, друг и защитник.",
+                'image' => '',
+                'author' => 'Терегулова М.В.'
+            ),
+            'puppies.json' => array(
+                'items' => array()
+            ),
+            'parents.json' => array(
+                'items' => array()
+            ),
+            'gallery.json' => array(
+                'images' => array()
+            ),
+            'blog.json' => array(
+                'posts' => array()
+            ),
+            'users.json' => array(
+                'users' => array(
+                    array(
+                        'id' => 1,
+                        'username' => 'admin',
+                        'password' => password_hash('admin123', PASSWORD_DEFAULT),
+                        'email' => 'admin@hotosho.ru',
+                        'role' => 'admin',
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'active' => true,
+                        'avatar' => ''
+                    )
+                )
+            ),
+            'breeds.json' => array(
+                'breeds' => array()
+            ),
+            'feedback.json' => array(
+                'messages' => array()
+            ),
+            // ФАЙЛЫ ДЛЯ ФОРУМА (базовые - для совместимости)
+            'forum_categories.json' => array(
+                'categories' => array(
+                    array(
+                        'id' => 1,
+                        'name' => 'Общие вопросы',
+                        'description' => 'Общение на разные темы о породе Хотошо',
+                        'icon' => '💬',
+                        'order' => 1,
+                        'created_at' => date('Y-m-d H:i:s')
+                    ),
+                    array(
+                        'id' => 2,
+                        'name' => 'О породе',
+                        'description' => 'Стандарты, история, особенности породы',
+                        'icon' => '📚',
+                        'order' => 2,
+                        'created_at' => date('Y-m-d H:i:s')
+                    ),
+                    array(
+                        'id' => 3,
+                        'name' => 'Здоровье и уход',
+                        'description' => 'Вопросы здоровья, питания, ветеринарии',
+                        'icon' => '🏥',
+                        'order' => 3,
+                        'created_at' => date('Y-m-d H:i:s')
+                    ),
+                    array(
+                        'id' => 4,
+                        'name' => 'Разведение',
+                        'description' => 'Вопросы разведения и вязок',
+                        'icon' => '🐕',
+                        'order' => 4,
+                        'created_at' => date('Y-m-d H:i:s')
+                    ),
+                    array(
+                        'id' => 5,
+                        'name' => 'Объявления',
+                        'description' => 'Купля-продажа, поиск питомцев',
+                        'icon' => '📢',
+                        'order' => 5,
+                        'created_at' => date('Y-m-d H:i:s')
+                    )
+                )
+            ),
+            'forum_topics.json' => array(
+                'topics' => array()
+            ),
+            'forum_posts.json' => array(
+                'posts' => array()
+            ),
+            'forum_subscriptions.json' => array(
+                'subscriptions' => array()
+            ),
+            'forum_likes.json' => array(
+                'likes' => array()
+            ),
+            // НОВЫЕ ФАЙЛЫ ДЛЯ ИМПОРТА WPFORO (сохраняем оригинальную структуру)
+            'wpforo_forums.json' => array(
+                'forums' => array(),
+                'imported_at' => null,
+                'source' => 'wpForo export'
+            ),
+            'wpforo_topics.json' => array(
+                'topics' => array(),
+                'imported_at' => null
+            ),
+            'wpforo_posts.json' => array(
+                'posts' => array(),
+                'imported_at' => null
+            ),
+            'wpforo_users.json' => array(
+                'users' => array(),
+                'imported_at' => null
+            ),
+            'wpforo_attachments.json' => array(
+                'attachments' => array(),
+                'imported_at' => null
+            ),
+            'wpforo_likes.json' => array(
+                'likes' => array(),
+                'imported_at' => null
+            ),
+            'wpforo_subscribes.json' => array(
+                'subscribes' => array(),
+                'imported_at' => null
+            ),
+            'wpforo_views.json' => array(
+                'views' => array(),
+                'imported_at' => null
+            ),
+            'wpforo_settings.json' => array(
+                'settings' => array(),
+                'imported_at' => null
+            ),
+            'wpforo_files_list.json' => array(
+                'files' => array(),
+                'imported_at' => null,
+                'total_size' => 0
+            )
+        );
+
+        foreach ($files as $filename => $defaultData) {
+            $filepath = $this->dataDir . $filename;
+            if (!file_exists($filepath)) {
+                $this->writeJsonFile($filepath, $defaultData);
+            }
+        }
+    }
+
+    public function get($filename) {
+        $filepath = $this->dataDir . $filename . '.json';
+
+        if (!file_exists($filepath)) {
+            return null;
+        }
+
+        $content = @file_get_contents($filepath);
+        if ($content === false) {
+            return null;
+        }
+
+        $data = json_decode($content, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            error_log("JSON decode error in {$filename}: " . json_last_error_msg());
+            return null;
+        }
+
+        return $data;
+    }
+
+    public function save($filename, $data) {
+        $filepath = $this->dataDir . $filename . '.json';
+
+        // Бэкап перед сохранением
+        if (file_exists($filepath)) {
+            $backupPath = $this->backupDir . $filename . '_' . date('Y-m-d_H-i-s') . '.json';
+            @copy($filepath, $backupPath);
+        }
+
+        return $this->writeJsonFile($filepath, $data);
+    }
+
+    private function writeJsonFile($filepath, $data) {
+        // JSON с поддержкой Unicode
+        $options = JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES;
+
+        // Для PHP 5.6 проверяем доступность констант
+        if (!defined('JSON_UNESCAPED_UNICODE')) {
+            $json = json_encode($data);
+        } else {
+            $json = json_encode($data, $options);
+        }
+
+        if ($json === false) {
+            error_log("JSON encode error: " . json_last_error_msg());
+            return false;
+        }
+
+        // Конвертируем в UTF-8 если нужно
+        if (function_exists('mb_convert_encoding')) {
+            $json = mb_convert_encoding($json, 'UTF-8', 'UTF-8');
+        }
+
+        $result = @file_put_contents($filepath, $json, LOCK_EX);
+
+        if ($result === false) {
+            error_log("Failed to write file: {$filepath}");
+            return false;
+        }
+
+        return $result;
+    }
+
+    public function uploadFile($fileInput, $prefix = '') {
+        if (!isset($_FILES[$fileInput]) || $_FILES[$fileInput]['error'] !== UPLOAD_ERR_OK) {
+            return array('success' => false, 'error' => 'Ошибка загрузки файла');
+        }
+
+        $file = $_FILES[$fileInput];
+
+        // Проверка типа
+        $allowedTypes = array('image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp');
+        $allowedExts = array('jpg', 'jpeg', 'png', 'gif', 'webp');
+
+        $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+
+        if (!in_array($ext, $allowedExts)) {
+            return array('success' => false, 'error' => 'Недопустимый тип файла');
+        }
+
+        // Проверка размера (10 MB)
+        if ($file['size'] > 10 * 1024 * 1024) {
+            return array('success' => false, 'error' => 'Файл слишком большой (макс 10MB)');
+        }
+
+        // Генерация имени
+        $safeName = preg_replace('/[^a-z0-9_-]/i', '', $prefix);
+        $filename = ($safeName ? $safeName . '_' : '') . uniqid() . '.' . $ext;
+        $uploadPath = $this->uploadsDir . $filename;
+
+        if (@move_uploaded_file($file['tmp_name'], $uploadPath)) {
+            @chmod($uploadPath, 0644);
+
+            return array(
+                'success' => true,
+                'filename' => $filename,
+                'path' => 'uploads/' . $filename,
+                'fullpath' => '/uploads/' . $filename
+            );
+        }
+
+        return array('success' => false, 'error' => 'Не удалось сохранить файл');
+    }
+
+    // НОВЫЙ МЕТОД: Загрузка нескольких файлов
+    public function uploadMultipleFiles($fileInput, $prefix = '') {
+        $uploaded = array();
+        $errors = array();
+
+        if (!isset($_FILES[$fileInput])) {
+            return array('success' => false, 'error' => 'Файлы не выбраны', 'files' => array());
+        }
+
+        $files = $_FILES[$fileInput];
+        $fileCount = count($files['name']);
+
+        for ($i = 0; $i < $fileCount; $i++) {
+            if ($files['error'][$i] !== UPLOAD_ERR_OK) {
+                continue;
+            }
+
+            $allowedExts = array('jpg', 'jpeg', 'png', 'gif', 'webp');
+            $ext = strtolower(pathinfo($files['name'][$i], PATHINFO_EXTENSION));
+
+            if (!in_array($ext, $allowedExts)) {
+                $errors[] = "Файл {$files['name'][$i]}: недопустимый тип";
+                continue;
+            }
+
+            if ($files['size'][$i] > 10 * 1024 * 1024) {
+                $errors[] = "Файл {$files['name'][$i]}: слишком большой";
+                continue;
+            }
+
+            $safeName = preg_replace('/[^a-z0-9_-]/i', '', $prefix);
+            $filename = ($safeName ? $safeName . '_' : '') . uniqid() . '.' . $ext;
+            $uploadPath = $this->uploadsDir . $filename;
+
+            if (@move_uploaded_file($files['tmp_name'][$i], $uploadPath)) {
+                @chmod($uploadPath, 0644);
+                $uploaded[] = array(
+                    'filename' => $filename,
+                    'path' => 'uploads/' . $filename,
+                    'fullpath' => '/uploads/' . $filename
+                );
+            } else {
+                $errors[] = "Файл {$files['name'][$i]}: не удалось сохранить";
+            }
+        }
+
+        return array(
+            'success' => count($uploaded) > 0,
+            'files' => $uploaded,
+            'errors' => $errors
+        );
+    }
+
+    public function deleteFile($filename) {
+        $basename = basename($filename);
+        $filepath = $this->uploadsDir . $basename;
+
+        if (file_exists($filepath)) {
+            return @unlink($filepath);
+        }
+
+        return false;
+    }
+
+    public function getUploadedFiles() {
+        $files = array();
+
+        if (!is_dir($this->uploadsDir)) {
+            return $files;
+        }
+
+        $dir = @opendir($this->uploadsDir);
+        if ($dir === false) {
+            return $files;
+        }
+
+        while (($file = readdir($dir)) !== false) {
+            if ($file != '.' && $file != '..' && is_file($this->uploadsDir . $file)) {
+                $filepath = $this->uploadsDir . $file;
+                $files[] = array(
+                    'filename' => $file,
+                    'path' => 'uploads/' . $file,
+                    'size' => filesize($filepath),
+                    'modified' => filemtime($filepath)
+                );
+            }
+        }
+
+        closedir($dir);
+
+        // Сортировка по дате
+        usort($files, function($a, $b) {
+            return $b['modified'] - $a['modified'];
+        });
+
+        return $files;
+    }
+
+    public function cleanOldBackups($keep = 10) {
+        $files = glob($this->backupDir . '*.json');
+
+        if (count($files) <= $keep) {
+            return;
+        }
+
+        usort($files, function($a, $b) {
+            return filemtime($a) - filemtime($b);
+        });
+
+        $toDelete = array_slice($files, 0, count($files) - $keep);
+        foreach ($toDelete as $file) {
+            @unlink($file);
+        }
+    }
+
+    public function getStats() {
+        $dataFiles = glob($this->dataDir . '*.json');
+        $uploadFiles = glob($this->uploadsDir . '*');
+        $backupFiles = glob($this->backupDir . '*.json');
+
+        $totalSize = 0;
+        foreach (array_merge((array)$dataFiles, (array)$uploadFiles, (array)$backupFiles) as $file) {
+            if (is_file($file)) {
+                $totalSize += filesize($file);
+            }
+        }
+
+        return array(
+            'data_files' => count($dataFiles),
+            'uploads' => count($uploadFiles),
+            'backups' => count($backupFiles),
+            'total_size' => $totalSize,
+            'total_size_mb' => round($totalSize / 1024 / 1024, 2)
+        );
+    }
+
+    // МЕТОДЫ ДЛЯ ФОРУМА (базовые)
+
+    public function getNextId($filename, $arrayKey) {
+        $data = $this->get($filename);
+        if (!$data || !isset($data[$arrayKey]) || empty($data[$arrayKey])) {
+            return 1;
+        }
+
+        $maxId = 0;
+        foreach ($data[$arrayKey] as $item) {
+            if (isset($item['id']) && $item['id'] > $maxId) {
+                $maxId = $item['id'];
+            }
+        }
+
+        return $maxId + 1;
+    }
+
+    public function getUserById($userId) {
+        $users = $this->get('users');
+        if (!$users || !isset($users['users'])) {
+            return null;
+        }
+
+        foreach ($users['users'] as $user) {
+            if ($user['id'] == $userId) {
+                return $user;
+            }
+        }
+
+        return null;
+    }
+
+    public function getUserByUsername($username) {
+        $users = $this->get('users');
+        if (!$users || !isset($users['users'])) {
+            return null;
+        }
+
+        foreach ($users['users'] as $user) {
+            if ($user['username'] === $username) {
+                return $user;
+            }
+        }
+
+        return null;
+    }
+
+    public function getCategoryById($categoryId) {
+        $categories = $this->get('forum_categories');
+        if (!$categories || !isset($categories['categories'])) {
+            return null;
+        }
+
+        foreach ($categories['categories'] as $category) {
+            if ($category['id'] == $categoryId) {
+                return $category;
+            }
+        }
+
+        return null;
+    }
+
+    public function getTopicById($topicId) {
+        $topics = $this->get('forum_topics');
+        if (!$topics || !isset($topics['topics'])) {
+            return null;
+        }
+
+        foreach ($topics['topics'] as $topic) {
+            if ($topic['id'] == $topicId) {
+                return $topic;
+            }
+        }
+
+        return null;
+    }
+
+    public function incrementTopicViews($topicId) {
+        $topics = $this->get('forum_topics');
+        if (!$topics || !isset($topics['topics'])) {
+            return false;
+        }
+
+        foreach ($topics['topics'] as $index => $topic) {
+            if ($topic['id'] == $topicId) {
+                if (!isset($topics['topics'][$index]['views'])) {
+                    $topics['topics'][$index]['views'] = 0;
+                }
+                $topics['topics'][$index]['views']++;
+                $this->save('forum_topics', $topics);
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // ========================================
+    // МЕТОДЫ ДЛЯ ИМПОРТА WPFORO
+    // ========================================
+
+    /**
+     * Импорт полного экспорта wpForo из JSON файла
+     * @param string $jsonFilePath - путь к файлу экспорта
+     * @return array - результат импорта
+     */
+    public function importWpForoFromJson($jsonFilePath) {
+        if (!file_exists($jsonFilePath)) {
+            return array(
+                'success' => false,
+                'error' => 'Файл не найден: ' . $jsonFilePath
+            );
+        }
+
+        $jsonContent = @file_get_contents($jsonFilePath);
+        if ($jsonContent === false) {
+            return array(
+                'success' => false,
+                'error' => 'Не удалось прочитать файл'
+            );
+        }
+
+        $exportData = json_decode($jsonContent, true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return array(
+                'success' => false,
+                'error' => 'Ошибка JSON: ' . json_last_error_msg()
+            );
+        }
+
+        if (!isset($exportData['data'])) {
+            return array(
+                'success' => false,
+                'error' => 'Неверная структура файла экспорта'
+            );
+        }
+
+        $stats = array(
+            'forums' => 0,
+            'topics' => 0,
+            'posts' => 0,
+            'users' => 0,
+            'attachments' => 0,
+            'likes' => 0,
+            'subscribes' => 0,
+            'views' => 0,
+            'files' => 0
+        );
+
+        $timestamp = date('Y-m-d H:i:s');
+
+        // 1. Импорт форумов (разделов)
+        if (isset($exportData['data']['forums']) && !empty($exportData['data']['forums'])) {
+            $forumsData = array(
+                'forums' => $exportData['data']['forums'],
+                'imported_at' => $timestamp,
+                'source' => 'wpForo export',
+                'export_date' => isset($exportData['export_date']) ? $exportData['export_date'] : null,
+                'site_url' => isset($exportData['site_url']) ? $exportData['site_url'] : null
+            );
+            $this->save('wpforo_forums', $forumsData);
+            $stats['forums'] = count($exportData['data']['forums']);
+        }
+
+        // 2. Импорт тем
+        if (isset($exportData['data']['topics']) && !empty($exportData['data']['topics'])) {
+            $topicsData = array(
+                'topics' => $exportData['data']['topics'],
+                'imported_at' => $timestamp
+            );
+            $this->save('wpforo_topics', $topicsData);
+            $stats['topics'] = count($exportData['data']['topics']);
+        }
+
+        // 3. Импорт постов
+        if (isset($exportData['data']['posts']) && !empty($exportData['data']['posts'])) {
+            $postsData = array(
+                'posts' => $exportData['data']['posts'],
+                'imported_at' => $timestamp
+            );
+            $this->save('wpforo_posts', $postsData);
+            $stats['posts'] = count($exportData['data']['posts']);
+        }
+
+        // 4. Импорт пользователей
+        if (isset($exportData['data']['users']) && !empty($exportData['data']['users'])) {
+            $usersData = array(
+                'users' => $exportData['data']['users'],
+                'imported_at' => $timestamp
+            );
+            $this->save('wpforo_users', $usersData);
+            $stats['users'] = count($exportData['data']['users']);
+        }
+
+        // 5. Импорт вложений
+        if (isset($exportData['data']['attachments']) && !empty($exportData['data']['attachments'])) {
+            $attachmentsData = array(
+                'attachments' => $exportData['data']['attachments'],
+                'imported_at' => $timestamp
+            );
+            $this->save('wpforo_attachments', $attachmentsData);
+            $stats['attachments'] = count($exportData['data']['attachments']);
+        }
+
+        // 6. Импорт лайков
+        if (isset($exportData['data']['likes']) && !empty($exportData['data']['likes'])) {
+            $likesData = array(
+                'likes' => $exportData['data']['likes'],
+                'imported_at' => $timestamp
+            );
+            $this->save('wpforo_likes', $likesData);
+            $stats['likes'] = count($exportData['data']['likes']);
+        }
+
+        // 7. Импорт подписок
+        if (isset($exportData['data']['subscribes']) && !empty($exportData['data']['subscribes'])) {
+            $subscribesData = array(
+                'subscribes' => $exportData['data']['subscribes'],
+                'imported_at' => $timestamp
+            );
+            $this->save('wpforo_subscribes', $subscribesData);
+            $stats['subscribes'] = count($exportData['data']['subscribes']);
+        }
+
+        // 8. Импорт просмотров
+        if (isset($exportData['data']['views']) && !empty($exportData['data']['views'])) {
+            $viewsData = array(
+                'views' => $exportData['data']['views'],
+                'imported_at' => $timestamp
+            );
+            $this->save('wpforo_views', $viewsData);
+            $stats['views'] = count($exportData['data']['views']);
+        }
+
+        // 9. Импорт настроек
+        if (isset($exportData['data']['settings']) && !empty($exportData['data']['settings'])) {
+            $settingsData = array(
+                'settings' => $exportData['data']['settings'],
+                'imported_at' => $timestamp
+            );
+            $this->save('wpforo_settings', $settingsData);
+        }
+
+        // 10. Импорт списка файлов (для последующей загрузки)
+        if (isset($exportData['data']['files']) && !empty($exportData['data']['files'])) {
+            $totalSize = 0;
+            foreach ($exportData['data']['files'] as $file) {
+                if (isset($file['size'])) {
+                    $totalSize += $file['size'];
+                }
+            }
+
+            $filesData = array(
+                'files' => $exportData['data']['files'],
+                'imported_at' => $timestamp,
+                'total_size' => $totalSize,
+                'total_size_mb' => round($totalSize / 1024 / 1024, 2)
+            );
+            $this->save('wpforo_files_list', $filesData);
+            $stats['files'] = count($exportData['data']['files']);
+        }
+
+        return array(
+            'success' => true,
+            'stats' => $stats,
+            'imported_at' => $timestamp
+        );
+    }
+
+    /**
+     * Получить статистику импортированных данных wpForo
+     */
+    public function getWpForoImportStats() {
+        $stats = array(
+            'forums' => 0,
+            'topics' => 0,
+            'posts' => 0,
+            'users' => 0,
+            'attachments' => 0,
+            'likes' => 0,
+            'subscribes' => 0,
+            'views' => 0,
+            'files' => 0,
+            'imported_at' => null,
+            'is_imported' => false
+        );
+
+        $forums = $this->get('wpforo_forums');
+        if ($forums && isset($forums['forums'])) {
+            $stats['forums'] = count($forums['forums']);
+            $stats['imported_at'] = isset($forums['imported_at']) ? $forums['imported_at'] : null;
+            $stats['is_imported'] = true;
+        }
+
+        $topics = $this->get('wpforo_topics');
+        if ($topics && isset($topics['topics'])) {
+            $stats['topics'] = count($topics['topics']);
+        }
+
+        $posts = $this->get('wpforo_posts');
+        if ($posts && isset($posts['posts'])) {
+            $stats['posts'] = count($posts['posts']);
+        }
+
+        $users = $this->get('wpforo_users');
+        if ($users && isset($users['users'])) {
+            $stats['users'] = count($users['users']);
+        }
+
+        $attachments = $this->get('wpforo_attachments');
+        if ($attachments && isset($attachments['attachments'])) {
+            $stats['attachments'] = count($attachments['attachments']);
+        }
+
+        $likes = $this->get('wpforo_likes');
+        if ($likes && isset($likes['likes'])) {
+            $stats['likes'] = count($likes['likes']);
+        }
+
+        $subscribes = $this->get('wpforo_subscribes');
+        if ($subscribes && isset($subscribes['subscribes'])) {
+            $stats['subscribes'] = count($subscribes['subscribes']);
+        }
+
+        $views = $this->get('wpforo_views');
+        if ($views && isset($views['views'])) {
+            $stats['views'] = count($views['views']);
+        }
+
+        $filesList = $this->get('wpforo_files_list');
+        if ($filesList && isset($filesList['files'])) {
+            $stats['files'] = count($filesList['files']);
+        }
+
+        return $stats;
+    }
+
+    /**
+     * Очистить все импортированные данные wpForo
+     */
+    public function clearWpForoImport() {
+        $files = array(
+            'wpforo_forums',
+            'wpforo_topics',
+            'wpforo_posts',
+            'wpforo_users',
+            'wpforo_attachments',
+            'wpforo_likes',
+            'wpforo_subscribes',
+            'wpforo_views',
+            'wpforo_settings',
+            'wpforo_files_list'
+        );
+
+        foreach ($files as $file) {
+            $emptyData = array(
+                substr($file, 7) => array(), // убираем префикс "wpforo_"
+                'imported_at' => null
+            );
+            $this->save($file, $emptyData);
+        }
+
+        return array('success' => true, 'message' => 'Импортированные данные wpForo очищены');
+    }
+}
+?>
